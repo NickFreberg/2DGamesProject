@@ -5,8 +5,14 @@ from enum import auto, Enum
 # CONSTANTS
 
 PLAYER_SPEED = 5
+BULLET_SPEED = 10
 GRAVITY = 1
 JUMP_SPEED = 15
+
+LEFT_VIEWPORT_MARGIN = 150
+RIGHT_VIEWPORT_MARGIN = 150
+BOTTOM_VIEWPORT_MARGIN = 50
+TOP_VIEWPORT_MARGIN = 100
 
 
 class MoveEnum(Enum):
@@ -23,7 +29,7 @@ class MinimalSprite(arcade.Sprite):
         self.speed = speed
         self.game = game_window
 
-    def move(self, list:arcade.SpriteList,direction: MoveEnum):
+    def move(self, list: arcade.SpriteList, direction: MoveEnum):
         # as a class exercise, lets fix this so it doesn't go off the window
         if direction == MoveEnum.UP:
             for thing in list:
@@ -152,6 +158,9 @@ class ArcadeButWithStuff(arcade.Window):
         self.direction = MoveEnum.NONE
         self.physics_engine = None
         self.player_is_shooting = False
+        self.shot_sound = None
+        self.view_bottom = 0
+        self.view_left = 0
         arcade.set_background_color(arcade.csscolor.SKY_BLUE)
 
         '''self.map_image_path = pathlib.Path.cwd() / 'Assets' / image_names[0]
@@ -165,6 +174,9 @@ class ArcadeButWithStuff(arcade.Window):
 
     def setup(self):
         # Create the Sprite Lists
+
+        self.shot_sound = arcade.load_sound(pathlib.Path.cwd() / 'Assets' / "Yeet.wav")
+
         self.player_list = arcade.SpriteList()
         self.wall_list = arcade.SpriteList()
         self.bullet_list = arcade.SpriteList()
@@ -176,14 +188,14 @@ class ArcadeButWithStuff(arcade.Window):
         self.player_list.append(self.player_sprite)
 
         # Create the ground
-        for i in range(0, 1250, 64):
+        for i in range(0, 5000, 64):
             wall = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / 'Tiles' / "GrassUpDirt.png")
             wall.center_x = i
             wall.center_y = 32
             self.wall_list.append(wall)
 
         # add a few rocks
-        coordinate_list = [[512, 96], [256, 96], [768, 96]]
+        coordinate_list = [[512, 96], [256, 96], [768, 96], [934, 96], [2000, 96]]
         for coordinate in coordinate_list:
             wall = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / 'Tiles' / "rock.png")
             wall.position = coordinate
@@ -194,6 +206,53 @@ class ArcadeButWithStuff(arcade.Window):
         # to get really smooth movement we would use the delta time to
         # adjust the movement, but for this simple version I'll forgo that.
         move(self.player_sprite, self.wall_list, self.direction)
+        self.bullet_list.update()
+        for bullet in self.bullet_list:
+            if bullet.bottom > self.height or bullet.top < 0:
+                bullet.kill()
+            if bullet.center_x > self.width or bullet.center_x < 0:
+                bullet.kill()
+
+        #Scroll Logic
+
+        changed = False
+
+        #Scroll to the Left
+        left_boundary = self.view_left + LEFT_VIEWPORT_MARGIN
+        if self.player_sprite.left < left_boundary:
+            self.view_left -= left_boundary - self.player_sprite.left
+            changed = True
+
+        #Scroll to the Right
+        right_boundary = self.view_left + self.width - RIGHT_VIEWPORT_MARGIN
+        if self.player_sprite.right > right_boundary:
+            self.view_left += self.player_sprite.right - right_boundary
+            changed = True
+
+        # FREEZE
+
+        # EVERYBODY CLAP YO HANDS
+
+        # Scroll up
+        top_boundary = self.view_bottom + self.height - TOP_VIEWPORT_MARGIN
+        if self.player_sprite.top > top_boundary:
+            self.view_bottom += self.player_sprite.top - top_boundary
+            changed = True
+
+        # Scroll down
+        bottom_boundary = self.view_bottom + BOTTOM_VIEWPORT_MARGIN
+        if self.player_sprite.bottom < bottom_boundary:
+            self.view_bottom -= bottom_boundary - self.player_sprite.bottom
+            changed = True
+
+        if changed:
+            self.view_bottom = int(self.view_bottom)
+            self.view_left = int(self.view_left)
+
+            arcade.set_viewport(self.view_left, self.width + self.view_left, self.view_bottom, self.height +
+                                self.view_bottom)
+
+
         # self.player_sprite.move(self.direction)
 
     def on_draw(self):
@@ -205,7 +264,42 @@ class ArcadeButWithStuff(arcade.Window):
         self.player_list.draw()
 
     def shoot(self):
-        bullet = arcade.Sprite
+
+        arcade.sound.play_sound(self.shot_sound)
+
+        bullet = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / "TestBullet.png")
+
+        if self.direction == MoveEnum.UP:
+            bullet.angle = 90
+            bullet.change_y = BULLET_SPEED
+            self.bullet_list.append(bullet)
+            bullet.center_x = self.player_sprite.center_x
+            bullet.center_y = self.player_sprite.center_y + 32
+
+        if self.direction == MoveEnum.DOWN:
+            bullet.angle = 270
+            bullet.change_y = -BULLET_SPEED
+            self.bullet_list.append(bullet)
+            bullet.center_x = self.player_sprite.center_x
+            bullet.center_y = self.player_sprite.center_y - 32
+
+        if self.direction == MoveEnum.LEFT:
+            bullet.angle = 180
+            bullet.change_x = -BULLET_SPEED
+            self.bullet_list.append(bullet)
+            bullet.center_x = self.player_sprite.center_x - 32
+            bullet.center_y = self.player_sprite.center_y
+
+        if self.direction == MoveEnum.RIGHT:
+            bullet.change_x = BULLET_SPEED
+            self.bullet_list.append(bullet)
+            bullet.center_x = self.player_sprite.center_x + 32
+            bullet.center_y = self.player_sprite.center_y
+
+
+
+
+
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed. """
@@ -218,9 +312,7 @@ class ArcadeButWithStuff(arcade.Window):
         elif key == arcade.key.RIGHT or key == arcade.key.D:
             self.direction = MoveEnum.RIGHT
         elif key == arcade.key.SPACE:
-            self.player_is_shooting = True
-            shoot(self.player_sprite)
-            self.player_is_shooting = False
+            self.shoot()
 
     def on_key_release(self, key: int, modifiers: int):
         """called by arcade for keyup events"""
