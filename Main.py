@@ -351,6 +351,20 @@ class ArcadeButWithStuff(arcade.Window):
 
         # self.player_sprite.move(self.direction)
 
+        if self.score >= 600:
+            self.player_dead = True
+            arcade.play_sound(self.win)
+            for enemy in self.enemy_list:
+                enemy.remove_from_sprite_lists
+            self.player_sprite.remove_from_sprite_lists
+            for bullet in self.bullet_list:
+                bullet.remove_from_sprite_lists
+            for bullet in self. enemy_bullet_list:
+                bullet.remove_from_sprite_lists
+            arcade.set_background_color(arcade.csscolor.BLACK)
+            arcade.draw_text("Game Over...", 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.WHITE, 18)
+
+
     def spawn_enemy(self, x):
 
         if self.score <= 100:
