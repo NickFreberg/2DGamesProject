@@ -367,9 +367,9 @@ class ArcadeButWithStuff(arcade.Window):
 
     def spawn_enemy(self, x):
 
-        if self.score <= 100:
+        if self.score <= 450:
             enemy_sprite = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / "Enemy1.png")
-            enemy_sprite.center_x = (x)
+            enemy_sprite.center_x = random.randint(128, 5000)
             enemy_sprite.center_y = 95
             self.enemy_list.append(self.enemy_sprite)
         else:
