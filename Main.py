@@ -1,6 +1,6 @@
 import arcade
 import pathlib
-import time
+import random
 from enum import auto, Enum
 
 # CONSTANTS
@@ -187,6 +187,7 @@ class ArcadeButWithStuff(arcade.Window):
     def setup(self):
         # Create the Sprite Lists
         self.frame_count = 0
+        self.enemies_on_map = 1
 
         self.shot_sound = arcade.load_sound(pathlib.Path.cwd() / 'Assets' / "Yeet.wav")
         self.enemy_shot_sound = arcade.load_sound(pathlib.Path.cwd() / 'Assets' / "EnemyMagic.wav")
@@ -244,16 +245,23 @@ class ArcadeButWithStuff(arcade.Window):
         self.frame_count += 1
         print(self.frame_count)
 
+        x_coordinates = [333.0, 1420.0, 1720.0, 2905.0, 4100.0]
+
+        if self.frame_count % 240 == 0 and self.enemies_on_map < 10:
+            random.seed(1)
+            self.spawn_enemy(random.choices(x_coordinates))
+            random.seed(1)
+
+
         # If the current frame divided by 360 has a remainder of 0, have the enemy shoot
         if self.frame_count % 360 == 0 and self.player_dead == False:
             self.enemy_shoot()
         for eb in self.enemy_bullet_list:
             if self.player_dead == True:
-                arcade.draw_text("Game Over...", 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.WHITE,
-                                 18)
+                arcade.draw_text("Game Over...", 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.WHITE, 18)
                 if self.frame_count % 200:
                     arcade.close_window()
-            for wall in self.wall_list:
+            for wall in self.obstacle_list:
                 if arcade.check_for_collision(eb, wall):
                     eb.remove_from_sprite_lists()
                     eb.kill
@@ -271,9 +279,10 @@ class ArcadeButWithStuff(arcade.Window):
         # adjust the movement, but for this simple version I'll forgo that.
         move(self.player_sprite, self.wall_list, self.direction)
         self.bullet_list.update()
+        self.enemy_list.update()
         self.enemy_bullet_list.update()
         for bullet in self.bullet_list:
-            for wall in self.wall_list:
+            for wall in self.obstacle_list:
                 if arcade.check_for_collision(bullet, wall):
                     bullet.remove_from_sprite_lists()
                     bullet.kill
@@ -284,15 +293,17 @@ class ArcadeButWithStuff(arcade.Window):
                 if arcade.check_for_collision(bullet, enemy):
                     enemy.remove_from_sprite_lists()
                     arcade.play_sound(self.enemy_hit_sound)
-                    enemy.kill
-                    enemy.remove_from_sprite_lists
+                    if self.score < 450:
+                        enemy.kill
+                        enemy.remove_from_sprite_lists
+                        self.enemies_on_map -=1
                     bullet.remove_from_sprite_lists
                     bullet.kill
                     self.score += 10
                 if arcade.check_for_collision(enemy, self.player_sprite):
                     arcade.play_sound(self.game_over)
                     self.player_sprite.remove_from_sprite_lists()
-                    self.player.kill
+                    self.player_sprite.kill
                     frame_of_death = self.frame_count
                     if self.frame_count >= frame_of_death + 200:
                         arcade.close_window()
@@ -340,6 +351,21 @@ class ArcadeButWithStuff(arcade.Window):
 
         # self.player_sprite.move(self.direction)
 
+    def spawn_enemy(self, x):
+
+        if self.score <= 100:
+            enemy_sprite = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / "Enemy1.png")
+            enemy_sprite.center_x = (x)
+            enemy_sprite.center_y = 95
+            self.enemy_list.append(self.enemy_sprite)
+        else:
+            enemy_sprite = arcade.Sprite(pathlib.Path.cwd() / 'Assets' / "Enemy2.png")
+            enemy_sprite.center_x = (x)
+            enemy_sprite.center_y = 95
+            self.enemy_list.append(self.enemy_sprite)
+
+
+
     def on_draw(self):
         """ Render the screen. """
         arcade.start_render()
@@ -356,8 +382,6 @@ class ArcadeButWithStuff(arcade.Window):
         else:
             arcade.set_background_color(arcade.csscolor.BLACK)
             arcade.draw_text("Game Over...", 10 + self.view_left, 10 + self.view_bottom, arcade.csscolor.WHITE, 18)
-
-
 
     def enemy_shoot(self):
         for enemy in self.enemy_list:
