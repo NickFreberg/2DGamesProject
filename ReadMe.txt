@@ -10,4 +10,8 @@ and a bullet will spawn and fly off in that direction
 I do not have a functioning physics engine (hence the lack of gravity or jump logic)
 
 all image assets were made by me
-"Yeet" sound effect ripped from https://www.youtube.com/watch?v=zM3gQ2ZFcUs and converted to .wav file
+
+WHAT I DID NOT GET WORKING:
+- I encountered issues trying to spawn enemies at different locations on the map. They will always spawn at the first spawn point
+- I had difficulty getting the advanced enemies to take two hits instead of one
+
